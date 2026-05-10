@@ -15,56 +15,24 @@
 #                                                                             #
 ###############################################################################
 
-# Import MinION objects
-from levseq import *
-from levseq.filter_orientation import filter_demultiplexed_folder
-# Import external packages
 import logging
-from pathlib import Path
-import numpy as np
-import pandas as pd
-from importlib import resources
-import subprocess
-from Bio import SeqIO
-import tqdm
-import platform
-import subprocess
 import os
+import platform
 import re
-import gzip
-import shutil
-
-import panel as pn
-import holoviews as hv
-from holoviews.streams import Tap
-import matplotlib
-
-import os
-import logging
-import pandas as pd
-from pathlib import Path
 import shutil
 import subprocess
-from Bio import SeqIO
-import platform
-import numpy as np
-import tqdm
-
-import os
-import logging
-import pandas as pd
-from pathlib import Path
-import shutil
-import subprocess
-from Bio import SeqIO
-import platform
-import numpy as np
-import tqdm
-import panel as pn
-import holoviews as hv
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from importlib import resources
-from holoviews.streams import Tap
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import tqdm
+from Bio import SeqIO
+
+from levseq.filter_orientation import filter_demultiplexed_folder
+from levseq.utils import translate
+from levseq.variantcaller import VariantCaller
 
 # Utility function to configure logging
 def configure_logging(result_folder, cl_args):
@@ -472,6 +440,8 @@ def save_platemap_to_file(heatmaps, outputdir, name, show_msa):
     if show_msa:
         heatmaps.save(file_path + "_msa.html", embed=True)
     else:
+        import holoviews as hv
+
         hv.renderer("bokeh").save(heatmaps, file_path)
 
 def save_csv(df, outputdir, name):
@@ -721,6 +691,8 @@ def run_LevSeq(cl_args, tqdm_fn=tqdm.tqdm):
         processed_csv = os.path.join(result_folder, "visualization_partial.csv")
         df_vis.to_csv(processed_csv, index=False)
         if cl_args["oligopool"]:
+            from levseq.visualization import make_oligopool_plates
+
             make_oligopool_plates(df_vis, result_folder=result_folder, save_files=True)
     except Exception as e:
         processed_csv = os.path.join(result_folder, "visualization_partial.csv")
@@ -730,6 +702,8 @@ def run_LevSeq(cl_args, tqdm_fn=tqdm.tqdm):
         raise
     
     try:
+        from levseq.visualization import generate_platemaps
+
         layout = generate_platemaps(
             max_combo_data=df_vis,
             result_folder=result_folder,

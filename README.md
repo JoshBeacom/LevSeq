@@ -15,24 +15,58 @@ Figure 1: Overview of the LevSeq variant sequencing workflow using Nanopore tech
 - **Reversed workflow architecture**: LevSeq 2.0 will perform alignment first, then demultiplexing (rather than the current demultiplexing-first approach), resolving issues with forward and reverse read handling
 - **Improved accuracy**: These changes will provide more robust demultiplexing and variant calling across diverse experimental conditions
 
-**Please reach out to us at ylong@caltech.edu if you are planning to order barcoded primers now**
+**If you are planning to order barcoded primers now, or need detailed help with troubleshooting or barcode design, please reach out at [lyming2021@gmail.com](mailto:lyming2021@gmail.com).**
 
 ## Notes
 
-LevSeq was designed for epPCR and SSM experiments, however, we are currently extending it to work for other enzyme engineering designs as well, the current features are under development:
+LevSeq was designed for epPCR and SSM experiments. We are also extending it to support additional enzyme engineering designs. Current features under development include:
 
-1. Insertion handling (see version 4.1.3) - thanks to  Brian Zhong for his contributions to this section!
-2. Gene calling (handling different genes, use the `--oligopool` flag)
+1. Insertion handling (see version 4.1.3). Thanks to Brian Zhong for contributions to this section.
+2. Gene calling for experiments with different genes, using the `--oligopool` flag.
 
-If you notice any issues with new features or have adapted the LevSeq code for your own use cases, we would love community contributions! Please submit either an issue, or a pull request and we will aim to incorperate the changes.
+If you notice issues with new features or have adapted LevSeq for your own use case, community contributions are welcome. Please submit an issue or pull request and we will aim to incorporate the changes.
 
 Performance update: demultiplexing now runs in parallel batches of 8 plates and input FASTQs are staged once per run, improving throughput on multi-core systems.
+
+Recent repository polish:
+- Faster imports: `import levseq` no longer initializes visualization libraries unless they are needed.
+- Cleaner run startup: plotting dependencies are loaded only when platemaps are generated.
+- Packaging cleanup: bundled barcode files and demultiplex binaries are now declared through package discovery.
+- Git hygiene: local `node_modules/` folders are ignored.
 
 ## Quick Start
 
 Note the current stable version is: `1.5`, the latest version is `1.5`. 
 
 For stable releases these are made available via docker and pip. For latest versions, please clone the repo and install locally (see *Local development or install of latest version* below).
+
+### How to Run LevSeq
+
+Before running LevSeq, prepare:
+- A folder containing Oxford Nanopore basecalled FASTQ files, usually from a `fastq_pass` directory.
+- A reference CSV file with the columns `barcode_plate`, `name`, and `refseq` (see [Reference File Format](#reference-file-format-refcsv)).
+- A run name, which LevSeq uses as the output folder name.
+
+The basic command format is:
+
+```bash
+levseq <run_name> <path_to_fastq_folder> <path_to_ref_csv>
+```
+
+Example:
+
+```bash
+levseq my_experiment /path/to/fastq_pass /path/to/ref.csv
+```
+
+LevSeq writes results to an output folder named after `<run_name>`. Key outputs include `variants.csv`, `visualization_partial.csv`, result CSV files, logs, and interactive platemap HTML files.
+
+Common run options:
+- Use `--output /path/to/output` to choose where the run folder is created.
+- Use `--skip_demultiplexing` if reads have already been demultiplexed.
+- Use `--skip_variantcalling` if you only want to run demultiplexing.
+- Use `--oligopool` for experiments with multiple genes or references per barcode plate.
+- Use `--show_msa` to include multiple sequence alignment views in the output.
 
 ### Docker Installation (Recommended)
 
@@ -49,6 +83,7 @@ For stable releases these are made available via docker and pip. For latest vers
    ```bash
    docker run --rm -v "/full/path/to/data:/levseq_results" yueminglong/levseq:levseq-1.4-arm64 my_experiment levseq_results/ levseq_results/ref.csv
    ```
+   Replace `levseq-1.4-arm64` with the image tag that matches your platform and release.
 4. Connect function data to your sequence data
    ```bash
    docker run --rm -v "/full/path/to/data:/levseq_results" yueminglong/levseq:levseq-1.4-arm64 my_experiment levseq_results/ levseq_results/ref.csv --fitness_files "levseq_results/20250712_epPCR_Q06714_37.csv,levseq_results/20250712_epPCR_Q06714_39.csv,levseq_results/20250712_epPCR_Q06714_40.csv" --smiles 'O=P(OC1=CC=CC=C1)(OC2=CC=CC=C2)OC3=CC=CC=C3>>O=P(O)(OC4=CC=CC=C4)OC5=CC=CC=C5' --compound dPPi --variant_df "levseq_results/visualization_partial.csv"
@@ -86,11 +121,11 @@ brew install gcc@13 gcc@14
    levseq my_experiment /path/to/data/ /path/to/ref.csv  "LCMS_file_{barcode1}.csv,LCMS_file_{barcode2}.csv," --smiles 'reaction_smiles_string' --compound "name_of_compound_in_LCMS_file" --variant_df "visualization_partial.csv"
    ```
 
-Note for function data we currently expect a LCMS file e.g. with the columns: 
+For function data, LevSeq currently expects LCMS files with these columns:
 - `Sample Vial Number` (corresponding to the well that the sample was from). 
 - `Area` (which becomes fitness value). 
 - `Compound Name` which is the name of the compound we filter for that is passed as a parameter.
-- The last `_X.csv` needs to be the barcode number to match that sample to your plate e.g. if you ran LevSeq with barcode 33 for plate 2 you need to have `_33.csv` for the fitness file for plate 2. e.g. `some_fitnes_for_plate_2_33.csv`.
+- The final `_X.csv` suffix should contain the barcode number used to match that sample to the correct plate. For example, if plate 2 used barcode 33, the fitness file should end in `_33.csv`, such as `some_fitness_for_plate_2_33.csv`.
 
 
 ## Data and Visualization
@@ -129,6 +164,10 @@ For oligopool experiments (multiple proteins per plate), use:
 - `--output`: Custom save location (defaults to current directory)
 - `--show_msa`: Show multiple sequence alignment for each well
 - `--oligopool`: Process data as oligopool experiment
+- `--fitness_files`: Comma-separated LCMS or function-data CSV files to join with sequence results
+- `--smiles`: Reaction SMILES string used when joining function data
+- `--compound`: Compound name to filter in the function-data files
+- `--variant_df`: LevSeq variant dataframe to join with function data, usually `visualization_partial.csv`
 
 ## Step-by-Step Tutorial
 
@@ -189,4 +228,4 @@ If you find LevSeq useful, please cite our paper:
 
 ## Contact
 
-Leave a feature request in the issues or reach us via [email](mailto:levseqdb@gmail.com).
+For detailed questions, troubleshooting, barcode design support, or feature requests, email [lyming2021@gmail.com](mailto:lyming2021@gmail.com). Reproducible bugs and public feature discussions are also welcome as GitHub issues.
