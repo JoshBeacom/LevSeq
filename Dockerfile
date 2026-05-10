@@ -23,6 +23,7 @@ COPY executable/source .
 # Use CMake with Release flag and specify the C and C++ compilers
 RUN find . -name "CMakeCache.txt" -delete \
     && cmake -DCMAKE_BUILD_TYPE=Release \
+             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
              -DCMAKE_C_COMPILER=gcc-13 \
              -DCMAKE_CXX_COMPILER=g++-13 \
              . \
