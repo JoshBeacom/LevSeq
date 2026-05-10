@@ -30,6 +30,7 @@ RUN find . -name "CMakeCache.txt" -delete \
 
 
 FROM ubuntu:latest AS dependencies
+ARG LEVSEQ_VERSION=1.5.1
 # Do the usual things
 RUN apt-get update
 RUN apt-get install -y build-essential
@@ -171,8 +172,8 @@ COPY --from=build-demultiplex /demultiplex/bin/demultiplex /levseq/barcoding/dem
 RUN source activate levseq
 RUN python setup.py sdist bdist_wheel
 
-# Install --> should update this to the latest pip version
-RUN source activate levseq && pip install dist/levseq-1.5.tar.gz
+# Install the local LevSeq source distribution built in the previous step.
+RUN source activate levseq && pip install "dist/levseq-${LEVSEQ_VERSION}.tar.gz"
 
 
 # Add entry point script
